@@ -1,0 +1,297 @@
+# Transaction Cost-Aware Deep Reinforcement Learning for Financial Portfolio Optimization
+
+**Habtamu Tadese Sefera**
+
+A thesis proposal submitted to the Department of Computer Science and Engineering  
+School of Electrical Engineering and Computing  
+
+Office of Graduate Studies  
+Adama Science and Technology University  
+
+January, 2026  
+Adama, Ethiopia  
+
+---
+
+## Declaration
+
+I declare that this thesis proposal, entitled “Transaction Cost-Aware Deep Reinforcement Learning for Financial Portfolio Optimization” is my own work and has not been submitted to any university for a similar purpose. The references used in this proposal are duly recognized by proper citations.
+
+---
+
+## Recommendation of Advisors
+
+I certify that I have closely advised the student and recommend submission of this proposal.
+
+---
+
+## Approval Page
+
+We certify that this proposal is ready for submission after incorporating review feedback.
+
+---
+
+## Contents
+
+- Introduction  
+- Literature Review  
+- Design and Methodology  
+- Work and Budget Plan  
+
+---
+
+# CHAPTER ONE
+
+## 1. INTRODUCTION
+
+### 1.1 Background of the Study
+
+Financial portfolio management aims to allocate capital across assets to maximize returns while minimizing risk. Modern Portfolio Theory (MPT), introduced by Markowitz (1952), established the efficient frontier using mean-variance optimization.
+
+However, MPT assumes:
+- Market efficiency  
+- Normal return distributions  
+- Linear correlations  
+
+Real markets violate these assumptions due to:
+- Volatility clustering  
+- Non-stationarity  
+- Behavioral biases  
+
+---
+
+### 1.2 Motivation
+
+Deep Reinforcement Learning (DRL) has shown strong performance in simulations but often ignores transaction costs.
+
+This leads to:
+- Excessive trading (“churning”)  
+- Unrealistic profits  
+- Poor real-world performance  
+
+This research introduces cost-aware learning to address this gap.
+
+---
+
+### 1.3 Problem Statement
+
+Traditional DRL models:
+- Optimize gross returns  
+- Ignore transaction costs  
+
+Result:
+- High turnover strategies  
+- Poor net performance  
+
+---
+
+### 1.4 Research Questions
+
+1. How do transaction costs affect DRL performance?
+2. Can cost-aware DRL outperform traditional strategies?
+3. Does it reduce trading frequency?
+
+---
+
+### 1.5 Objectives
+
+#### General Objective
+Develop a transaction cost-aware DRL framework.
+
+#### Specific Objectives
+- Quantify cost impact  
+- Design cost-aware reward  
+- Implement PPO/DDPG  
+
+---
+
+### 1.6 Significance
+
+- Bridges theory and practice  
+- Improves trading systems  
+- Benefits investors  
+
+---
+
+### 1.7 Scope
+
+- DRL models: PPO / DDPG  
+- Assets: Stocks or cryptocurrencies  
+- Data: 2015–2023  
+
+---
+
+### 1.8 Limitations
+
+- Assumes liquidity  
+- Uses proportional cost model  
+- Based on historical data  
+
+---
+
+# CHAPTER TWO
+
+## 2. LITERATURE REVIEW
+
+### 2.1 Evolution of Portfolio Theory
+
+- Markowitz (1952): Mean-Variance Optimization  
+- Later work: transaction costs and no-trade regions  
+
+---
+
+### 2.2 DRL in Finance
+
+- Handles high-dimensional data  
+- Learns adaptive strategies  
+- Frameworks: PPO, SAC, FinRL  
+
+---
+
+### 2.3 Cost-Aware DRL
+
+Key idea:
+- Penalize turnover in reward  
+
+Benefits:
+- Reduced trading  
+- Improved Sharpe ratio  
+- More realistic strategies  
+
+---
+
+# CHAPTER THREE
+
+## 3. DESIGN AND METHODOLOGY
+
+### 3.1 Problem Formulation
+
+Portfolio management modeled as a Markov Decision Process (MDP).
+
+---
+
+### 3.1.1 State Space
+s_t = [X_{t-k:t}, w_{t-1}]
+
+Includes:
+- Historical prices  
+- Previous portfolio weights  
+
+---
+
+### 3.1.2 Action Space
+w_t = [w_{t,0}, ..., w_{t,M}]
+
+Constraints:
+- Sum = 1  
+- No short selling  
+
+---
+
+### 3.1.3 Transaction Dynamics
+
+Portfolio evolves based on asset returns.
+
+---
+
+### 3.1.4 Transaction Cost Model
+Cost_t = λ Σ |w_t - w'_{t-1}|
+
+---
+
+### 3.2 Reward Function
+R_t = log(V_t / V_{t-1})
+
+With cost:
+R_t ≈ log return − λ × turnover
+
+---
+
+### 3.3 Algorithm
+
+- Actor-Critic (PPO / DDPG)
+
+#### Actor
+Maps state → portfolio weights  
+
+#### Critic
+Evaluates expected reward  
+
+---
+
+### 3.4 Data
+
+- Source: Yahoo Finance  
+- Assets: Stocks / Crypto  
+- Period: 2015–2023  
+
+---
+
+### 3.5 Evaluation Metrics
+
+- Return (ARR)  
+- Sharpe Ratio  
+- Maximum Drawdown  
+- Turnover  
+
+---
+
+### 3.6 Tools
+
+#### Hardware
+- GPU: RTX 4090  
+- RAM: 64GB  
+
+#### Software
+- Python  
+- PyTorch  
+- FinRL  
+- Stable-Baselines3  
+
+---
+
+### 3.7 Expected Outcome
+
+- Lower turnover  
+- Higher net returns  
+- Realistic trading strategies  
+
+---
+
+# CHAPTER FOUR
+
+## 4. WORK AND BUDGET PLAN
+
+### 4.1 Time Schedule
+
+Tasks include:
+- Proposal writing  
+- Literature review  
+- Implementation  
+- Evaluation  
+- Thesis writing  
+
+---
+
+### 4.2 Budget
+
+| Item | Cost (ETB) |
+|------|-----------|
+| Paper | 900 |
+| Per diem | 9,333 |
+| Data collection | 3,507 |
+| Transport | 2,860 |
+| Printing | 1,200 |
+| Binding | 7,200 |
+| **Total** | **25,000** |
+
+---
+
+# References
+
+- Markowitz (1952)  
+- Liang et al. (2018)  
+- Jiang et al. (2017)  
+- Liu et al. (2022)  
+- Bai et al. (2024)  
+- Others...
