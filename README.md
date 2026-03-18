@@ -31,8 +31,8 @@ The system is built upon a modular DRL architecture:
     Clone the repository:
     Bash
 
-    git clone https://github.com/yourusername/portfolio-drl-thesis
-    cd portfolio-drl-thesis
+    git clone https://github.com/hbtgit/drl_portfolio_optimization
+    cd drl_portfolio_optimization
 
     Install dependencies:
     Bash
