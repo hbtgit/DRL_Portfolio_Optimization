@@ -1,7 +1,7 @@
 # DRL_Portfolio_Optimization
 Transaction Cost-Aware Deep Reinforcement Learning for Financial Portfolio Optimization
 
-This repository contains the implementation of a Deep Reinforcement Learning (DRL) framework designed for dynamic portfolio optimization. This project specifically addresses the challenge of transaction costs in financial markets, implementing a cost-aware reward function that balances return generation with trading friction.
+This repository contains the implementation of a Deep Reinforcement Learning (DRL) framework designed for dynamic portfolio optimization. This project specifically addresses the challenge of transaction costs in financial markets, implementing a cost-aware reward function that balances return generation with trading friction. The framework is evaluated across diverse asset classes, including equities (Dow Jones) and cryptocurrencies, over an 8-year historical period.
 🏗 Project Architecture
 
 The system is built upon a modular DRL architecture:
@@ -59,11 +59,18 @@ python evaluate.py --model_path models/ppo_final.zip --test_data data/2025_test.
 
 📊 Research Methodology
 
-This project implements the research outlined in my thesis proposal, focusing on the following research questions:
+This project implements the research outlined in my thesis proposal, focusing on the following research objectives and questions:
 
-    RQ1: Does a cost-aware reward function successfully create a "no-trade region" for the agent?
+### Objectives
+- **Quantify Cost Impact**: Analyze the detrimental effects of transaction costs on non-cost-aware DRL agents.
+- **Design Cost-Aware Reward**: Implement a modified reward function that penalizes excessive trading.
+- **Comparative Analysis**: Compare the TC-aware DRL framework against traditional Mean-Variance Optimization (MVO) and standard DRL models.
+- **Cross-Asset Evaluation**: Test performance on both stable equities and volatile cryptocurrencies.
 
-    RQ2: How does the DRL agent compare to classical Mean-Variance Optimization in high-volatility regimes?
+### Research Questions
+- **RQ1**: Does a cost-aware reward function successfully create a "no-trade region" for the agent?
+- **RQ2**: How does the DRL agent compare to classical Mean-Variance Optimization in high-volatility regimes?
+- **RQ3**: Does the inclusion of transaction costs in the reward function lead to more realistic and stable trading strategies?
 
 📄 License
 
