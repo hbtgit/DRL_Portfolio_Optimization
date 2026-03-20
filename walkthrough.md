@@ -51,6 +51,14 @@ Verified that the `TradingEnv` return and reward formulas match theoretical expe
 - **Reward Accuracy**: The log-return approximation used ($\ln(R_{gross}) - \lambda \cdot Turnover$) was found to have a negligible error ($<0.5\%$) compared to the "exact" theoretical formula.
 - **Report**: Full details available in [return_validation_report.md](file:///c:/Users/Hab/Desktop/DRL_Portfolio_Optimization-1/return_validation_report.md).
 
+## 8. TC-Aware Reward Implementation
+Implemented and verified the transaction cost (TC) aware reward function.
+
+**Formula**: $R_t = \ln(R_{gross}) - \lambda \cdot Turnover$
+- **Verification**: Cross-referenced with $R_t = \ln(R_{gross} \cdot (1 - \lambda \cdot Turnover))$ in [test_reward.py](file:///c:/Users/Hab/Desktop/DRL_Portfolio_Optimization-1/test_reward.py).
+- **Result**: Approximation error of only **0.045%** for $\lambda = 0.001$, confirming the linearity of the penalty is robust for training.
+- **Documentation**: [tc_reward_implementation.md](file:///c:/Users/Hab/Desktop/DRL_Portfolio_Optimization-1/tc_reward_implementation.md)
+
 ## 7. Sprint 2: Agent Implementation & Refinement
 Initialized the DRL training pipeline using `Stable-Baselines3`.
 
