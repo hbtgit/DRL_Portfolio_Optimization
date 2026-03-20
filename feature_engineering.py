@@ -103,9 +103,9 @@ if __name__ == "__main__":
     full_df.to_csv(raw_path, index=False)
     print(f"Saved raw features to {raw_path}")
     
-    # Normalize features (Z-score scaling per ticker for price-dependent features)
-    # Note: RSI is already 0-100, but Z-scoring it per ticker is still fine.
-    # Log returns are already roughly normalized, but Z-scoring helps.
+    # Add raw_return which will NOT be normalized for reward calculation
+    full_df['raw_return'] = full_df['log_return']
+    
     feature_columns = [
         'Close', 'Volume', 'sma_10', 'sma_30', 'rsi_14', 
         'macd', 'macd_signal', 'bb_middle', 'bb_std', 'bb_upper', 'bb_lower', 'log_return'

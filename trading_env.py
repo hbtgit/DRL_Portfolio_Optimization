@@ -14,15 +14,17 @@ class TradingEnv(gym.Env):
     """
     metadata = {"render_modes": ["human"]}
 
-    def __init__(self, data_path, window_size=10, transaction_cost=0.001):
+    def __init__(self, data, window_size=10, transaction_cost=0.001):
         super(TradingEnv, self).__init__()
         
-        self.data_path = data_path
         self.window_size = window_size
         self.transaction_cost = transaction_cost
         
-        # Load and preprocess data
-        self.df = pd.read_csv(data_path)
+        # Load data if path is provided, otherwise use DataFrame directly
+        if isinstance(data, str):
+            self.df = pd.read_csv(data)
+        else:
+            self.df = data
         self.df['Date'] = pd.to_datetime(self.df['Date'])
         
         # Get unique tickers and dates
@@ -33,7 +35,7 @@ class TradingEnv(gym.Env):
         # Features to use for observation (normalized ones)
         self.feature_cols = [
             'Close', 'Volume', 'sma_10', 'sma_30', 'rsi_14', 
-            'macd', 'macd_signal', 'bb_middle', 'bb_std', 'bb_upper', 'bb_lower', 'log_return'
+            'macd', 'macd_signal', 'bb_middle', 'bb_std', 'bb_upper', 'bb_lower', 'log_return', 'raw_return'
         ]
         self.num_features = len(self.feature_cols)
         
@@ -46,11 +48,11 @@ class TradingEnv(gym.Env):
         self.action_space = spaces.Box(low=0, high=1, shape=(self.num_assets,), dtype=np.float32)
         
         # Observation space: 
-        # 1. Market Features: (window_size, num_assets, num_features)
-        # 2. Portfolio Weights: (num_assets,)
+        # 1. Market Features: (window_size, num_assets, num_features - 1) 
+        # We exclude raw_return from observation
         self.observation_space = spaces.Dict({
             "market": spaces.Box(low=-np.inf, high=np.inf, 
-                                shape=(self.window_size, self.num_assets, self.num_features), 
+                                shape=(self.window_size, self.num_assets, self.num_features - 1), 
                                 dtype=np.float32),
             "portfolio": spaces.Box(low=0, high=1, shape=(self.num_assets,), dtype=np.float32)
         })
@@ -76,10 +78,17 @@ class TradingEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
+        if seed is not None:
+            np.random.seed(seed)
         
-        # Randomly choose a start point within the first 80% to allow for a full episode
-        # Or just start from the beginning for now
-        self.current_step = self.window_size
+        # In RL training, it's often better to start at different points in time
+        # to increase sample diversity. We'll start between window_size and 80% of data.
+        if len(self.dates) > self.window_size + 100:
+            max_start = int(len(self.dates) * 0.8)
+            self.current_step = np.random.randint(self.window_size, max_start)
+        else:
+            self.current_step = self.window_size
+            
         self.portfolio_weights = np.ones(self.num_assets) / self.num_assets
         
         observation = self._get_observation()
@@ -87,7 +96,8 @@ class TradingEnv(gym.Env):
         return observation, info
 
     def _get_observation(self):
-        market_window = self.data_tensor[self.current_step - self.window_size : self.current_step]
+        # Exclude raw_return (last index) from the market window provided to agent
+        market_window = self.data_tensor[self.current_step - self.window_size : self.current_step, :, :-1]
         return {
             "market": market_window,
             "portfolio": self.portfolio_weights.astype(np.float32)
@@ -95,20 +105,15 @@ class TradingEnv(gym.Env):
 
     def step(self, action):
         # 1. Normalize actions to sum to 1 (Simplex constraint)
-        # Handle zero action (unlikely with Box(0,1))
         if np.sum(action) > 0:
             target_weights = action / np.sum(action)
         else:
             target_weights = np.ones(self.num_assets) / self.num_assets
         
-        # 2. Get asset returns for the current step (Price at t / Price at t-1)
-        # We use 'Close' price (which is normalized, but we need raw returns?)
-        # Wait, the normalized 'Close' is Z-scored. 
-        # We should use 'log_return' which is natural ln(P_t/P_t-1).
-        # Exp(log_return) = P_t/P_t-1
-        # 'log_return' column index:
-        log_return_idx = self.feature_cols.index('log_return')
-        log_returns = self.data_tensor[self.current_step, :, log_return_idx]
+        # 2. Get asset returns for the current step
+        # Use 'raw_return' which is the actual ln(P_t/P_t-1)
+        raw_return_idx = self.feature_cols.index('raw_return')
+        log_returns = self.data_tensor[self.current_step, :, raw_return_idx]
         asset_returns = np.exp(log_returns) # Price ratio P_t / P_t-1
         
         # 3. Calculate Portfolio Return (before rebalancing)
