@@ -112,18 +112,18 @@ if __name__ == "__main__":
     ]
     
     print("Normalizing features per ticker...")
-    def z_score_ticker(group):
-        for col in feature_columns:
-            if col in group.columns:
-                mean = group[col].mean()
-                std = group[col].std()
-                if std != 0:
-                    group[col] = (group[col] - mean) / std
-                else:
-                    group[col] = 0
-        return group
-
-    norm_df = full_df.groupby('Ticker', group_keys=False).apply(z_score_ticker)
+    # More robust approach using transform to preserve all columns naturally
+    means = full_df.groupby('Ticker')[feature_columns].transform('mean')
+    stds = full_df.groupby('Ticker')[feature_columns].transform('std')
+    
+    norm_df = full_df.copy()
+    norm_df[feature_columns] = (norm_df[feature_columns] - means) / stds
+    # Handle assets where std might be 0 (e.g., constant values)
+    norm_df[feature_columns] = norm_df[feature_columns].fillna(0)
+    
+    # Final check: ensure Ticker is present
+    if 'Ticker' not in norm_df.columns:
+        print("Error: Ticker column lost. This should NOT happen with transform.")
     
     norm_path = os.path.join(PROCESSED_DIR, "portfolio_data_normalized.csv")
     norm_df.to_csv(norm_path, index=False)
