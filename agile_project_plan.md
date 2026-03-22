@@ -27,10 +27,11 @@ This plan outlines the implementation, experimentation, and documentation phases
 
 ### Sprint 4: Visualization, Documentation & Synthesis
 **Goal**: Finalize research results and prepare the thesis/repository for delivery.
-- [ ] **Visual Analysis**: Generate equity curves, weight allocation heatmaps, and cost-vs-return scatter plots.
-- [ ] **Research Synthesis**: Formally answer RQ1, RQ2, and RQ3 based on experimental evidence.
-- [ ] **Documentation**: Complete the `Thesis_proposal.md` with final results and update `README.md`.
-- [ ] **Final Review**: Perform code cleanup and ensure the repository is reproducible via `requirements.txt`.
+- [x] **Visual Analysis**: Generate equity curves, weight allocation heatmaps, and cost-vs-return scatter plots.
+- [x] **Research Synthesis**: Formally answer RQ1, RQ2, and RQ3 based on experimental evidence.
+- [x] **Documentation**: Complete the `Thesis_proposal.md` with final results and update `README.md`.
+- [x] **Final Review**: Perform code cleanup and ensure the repository is reproducible via `requirements.txt`.
+
 
 ---
 
