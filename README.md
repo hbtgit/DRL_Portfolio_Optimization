@@ -72,6 +72,12 @@ This project implements the research outlined in my thesis proposal, focusing on
 - **RQ2**: How does the DRL agent compare to classical Mean-Variance Optimization in high-volatility regimes?
 - **RQ3**: Does the inclusion of transaction costs in the reward function lead to more realistic and stable trading strategies?
 
+🏆 Key Empirical Findings (2022-2023 Out-of-Sample Test)
+
+1. **Transaction Costs Dominate**: Standard 32-asset cross-regime PPO models generated a staggering 54% cumulative transaction cost drag, completely erasing gross returns (-13.14% net ARR).
+2. **Cost-Aware DRL Can Outperform**: The TC-aware PPO Pilot model, trained exclusively on a 30-asset equities regime, achieved a **+13.81% Net Annualized Return** (Sharpe 0.73), significantly outperforming Equal Weight and MVO baselines (+8.70%).
+3. **Turnover Reduction is Critical**: The equities pilot model learned to restrict its trading to a moderate 0.40 average daily turnover (vs 0.88 for full cross-asset models), proving that proportional penalties ($R_t = \ln(\text{return}) - \lambda \cdot \text{turnover}$) can enforce realistic trading behaviors if the asset universe is well-bounded.
+
 📄 License
 
 This repository is associated with the thesis project: "Transaction Cost-Aware Deep Reinforcement Learning for Financial Portfolio Optimization" at Adama Science and Technology University.

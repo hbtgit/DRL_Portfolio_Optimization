@@ -155,3 +155,23 @@ Total estimated budget: 25,000 ETB.
 - Jiang et al. (2017)
 - Liu et al. (2022)
 - Bai et al. (2024)
+
+---
+
+# CHAPTER FIVE
+
+## 5. EXPERIMENTAL RESULTS AND SYNTHESIS
+
+Based on the 8-year historical backtest (2015-2023) and out-of-sample testing (2022-2023) across multiple PPO agents and baselines, the research questions are addressed as follows:
+
+### 5.1 RQ1: How do transaction costs affect DRL performance?
+**Transaction costs are the primary bottleneck for DRL profitability in realistic markets.** During the 2022-2023 test period, the standard 32-asset cross-regime PPO models generated a staggering **50% to 54% cumulative transaction cost drag**. This extreme trading friction entirely erased the agent's gross returns, resulting in net annualized returns of -13.14% compared to the baseline's +8.70%. The empirical evidence confirms that without strict turnover constraints or extreme predictive accuracy, standard DRL architectures will spend themselves into unprofitability via constant microscopic rebalancing.
+
+### 5.2 RQ2: Can cost-aware DRL outperform traditional strategies?
+**Yes, under the right conditions.** The TC-aware "PPO Pilot" model, trained exclusively on the 30-asset equities regime, successfully captured market trends while managing costs. It achieved a **+13.81% Net Annualized Return** with a Sharpe Ratio of 0.73, significantly outperforming both the Equal Weight (1/N) and Mean-Variance Optimization (MVO) baselines, which yielded +8.70% (Sharpe 0.55). This demonstrates that proportional cost penalties ($R_t = \ln(\text{return}) - \lambda \cdot \text{turnover}$) can force the agent to find a profitable sub-space. However, scaling this to highly volatile cross-asset universes (mixing crypto and equities) destabilizes the agent, indicating that successful cost-aware DRL requires either regime-specific training or significantly higher compute allocation (e.g., millions of timesteps).
+
+### 5.3 RQ3: Does it reduce trading frequency?
+**Yes, but it requires precise tuning of the penalty parameter ($\lambda$).** The TC-aware reward function successfully created a continuum of trading frequencies. The pilot equities model learned to restrict its trading to a moderate **0.40 average daily turnover** (translating to ~15% cumulative drag, which was easily offset by its gross returns). Contrastingly, the full cross-asset models failed to find this balance, trading at ~0.88 turnover daily as they endlessly chased volatile cryptocurrency spikes. Furthermore, sensitivity analysis utilizing a TC-aware MVO proxy confirmed the theoretical existence of a "no-trade region" that widens exponentially as $\lambda$ increases.
+
+### 5.4 Conclusion
+Integrating transaction costs directly into the MDP reward function is non-negotiable for deploying DRL in financial markets. This research validates that a heavily penalized DRL agent can outperform Markowitz MPT baselines (RQ2), but it also highlights the fragility of these agents in multi-regime environments (RQ1, RQ3) where the allure of volatile assets can overpower the agent's learned cost-aversion.
