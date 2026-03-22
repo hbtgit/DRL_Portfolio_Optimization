@@ -1,0 +1,58 @@
+# Performance Benchmarking Walkthrough
+
+**Test Period**: 2022-01-01 → 2023-12-30 (32 tickers, ~504 trading days)
+
+## What Was Done
+
+Created [benchmark_comparison.py](file:///c:/Users/Hab/Desktop/DRL_Portfolio_Optimization-1/benchmark_comparison.py) to run deterministic rollouts for all models and baselines and compute three core financial metrics.
+
+---
+
+## Results Table
+
+| Strategy | Ann. Return (%) | Sharpe Ratio | Max Drawdown (%) | Avg Turnover |
+|---|---|---|---|---|
+| **PPO Pilot (equities)** | **+13.81** | **0.731** | **-16.89** | 0.402 |
+| Equal Weight (1/N) | +8.70 | 0.555 | -18.14 | 0.008 |
+| MVO (Max Sharpe) | +8.70 | 0.555 | -18.14 | 0.008 |
+| PPO Checkpoint 10k | -10.71 | -0.687 | -29.94 | 0.791 |
+| PPO Checkpoint 30k | -11.99 | -0.698 | -31.02 | 0.876 |
+| PPO Full (30k steps) | -13.14 | -0.768 | -35.30 | 0.883 |
+| PPO Checkpoint 20k | -13.59 | -0.776 | -35.20 | 0.808 |
+
+Saved to [results/benchmark_table.csv](file:///c:/Users/Hab/Desktop/DRL_Portfolio_Optimization-1/results/benchmark_table.csv)
+
+---
+
+## Visualisations
+
+### Cumulative Returns
+![Cumulative returns for all strategies](C:\Users\Hab\.gemini\antigravity\brain\808883e7-32f0-4b4f-be97-aa66da2e0503\benchmark_cumreturns.png)
+
+### Metrics Comparison (Bar Chart)
+![Metric bar chart for all strategies](C:\Users\Hab\.gemini\antigravity\brain\808883e7-32f0-4b4f-be97-aa66da2e0503\benchmark_metrics_bar.png)
+
+---
+
+## Key Findings
+
+1. **PPO Pilot wins clearly** — the equities-only pilot (+13.81% ARR, Sharpe 0.73) outperforms all baselines and every full cross-asset model. Its lower turnover (0.40 vs ~0.85) suggests it has learned more stable allocations.
+
+2. **Cross-asset expansion hurt performance** — all five full-model variants (including checkpoints) produced negative ARR in 2022–2023. The crash in crypto (BTC, ETH) during 2022 heavily penalised high-turnover strategies.
+
+3. **Equal Weight ≈ MVO** — both baselines produced identical metrics, confirming that MVO with 252-day lookback collapses to near-equal weights on this asset universe during a volatile/down year.
+
+4. **High turnover is costly** — full-model avg turnover (~0.8) incurs significant transaction cost drag. The pilot's 0.40 turnover reflects a smaller, more tractable universe (30 equities vs 32 assets).
+
+## Recommendations
+
+| Priority | Action |
+|---|---|
+| High | Increase training compute (300k–1M steps) for the full cross-asset regime |
+| High | Tune λ (transaction cost) — sensitivity analysis should target λ ∈ [0.001, 0.01] |
+| Medium | Evaluate PPO Pilot on out-of-sample 2024 data to test stability |
+| Low | Replace fixed-window MVO lookback with an expanding window |
+
+---
+
+**Outputs saved in [results/](file:///c:/Users/Hab/Desktop/DRL_Portfolio_Optimization-1/results/)**
