@@ -30,6 +30,7 @@ import matplotlib.ticker as mticker
 from stable_baselines3 import PPO
 from trading_env import TradingEnv
 from baselines import EqualWeightStrategy, MVOStrategy
+from metrics_aggregator import MetricsCollector, aggregate_and_plot
 
 warnings.filterwarnings("ignore")
 
@@ -97,13 +98,13 @@ def _make_test_env(df_all, asset_filter):
     return TradingEnv(df)
 
 
-def rollout_ppo(model_path, label, df_all, asset_filter):
+def rollout_ppo(model_path, label, df_all, asset_filter, collector: MetricsCollector = None):
     """Run a deterministic PPO rollout and return (cum_returns, turnovers)."""
     if not os.path.exists(model_path):
-        print(f"  [SKIP] {label}: file not found → {model_path}")
+        print(f"  [SKIP] {label}: file not found -> {model_path}")
         return None, None
 
-    print(f"  Rolling out {label} …")
+    print(f"  Rolling out {label} ...")
     env = _make_test_env(df_all, asset_filter)
     model = PPO.load(model_path, device="cpu")
 
@@ -111,48 +112,85 @@ def rollout_ppo(model_path, label, df_all, asset_filter):
     done = False
     cum = [1.0]
     tos = []
+    step = 0
 
     while not done:
         action, _ = model.predict(obs, deterministic=True)
         obs, _, terminated, truncated, info = env.step(action)
         cum.append(cum[-1] * info["net_return"])
         tos.append(info["turnover"])
+        if collector is not None:
+            collector.record(
+                step=step,
+                turnover=info["turnover"],
+                tc_penalty=info["tc_penalty"],
+                net_return=info["net_return"],
+                gross_return=info["portfolio_return"],
+            )
         done = terminated or truncated
+        step += 1
+
+    if collector is not None:
+        collector.save()
 
     return cum, tos
 
 
-def rollout_equal_weight(df_all, asset_filter):
-    print("  Rolling out Equal Weight …")
+def rollout_equal_weight(df_all, asset_filter, collector: MetricsCollector = None):
+    print("  Rolling out Equal Weight ...")
     env = _make_test_env(df_all, asset_filter)
     strat = EqualWeightStrategy()
     obs, _ = env.reset(seed=42)
     done = False
     cum = [1.0]
     tos = []
+    step = 0
     while not done:
         action = strat.get_action(env, env.current_step)
         _, _, terminated, truncated, info = env.step(action)
         cum.append(cum[-1] * info["net_return"])
         tos.append(info["turnover"])
+        if collector is not None:
+            collector.record(
+                step=step,
+                turnover=info["turnover"],
+                tc_penalty=info["tc_penalty"],
+                net_return=info["net_return"],
+                gross_return=info["portfolio_return"],
+            )
         done = terminated or truncated
+        step += 1
+    if collector is not None:
+        collector.save()
     return cum, tos
 
 
-def rollout_mvo(df_all, asset_filter):
-    print("  Rolling out MVO (Max Sharpe) …")
+def rollout_mvo(df_all, asset_filter, collector: MetricsCollector = None):
+    print("  Rolling out MVO (Max Sharpe) ...")
     env = _make_test_env(df_all, asset_filter)
     strat = MVOStrategy(RAW_DATA_PATH)
     obs, _ = env.reset(seed=42)
     done = False
     cum = [1.0]
     tos = []
+    step = 0
     while not done:
         action = strat.get_action(env, env.current_step)
         _, _, terminated, truncated, info = env.step(action)
         cum.append(cum[-1] * info["net_return"])
         tos.append(info["turnover"])
+        if collector is not None:
+            collector.record(
+                step=step,
+                turnover=info["turnover"],
+                tc_penalty=info["tc_penalty"],
+                net_return=info["net_return"],
+                gross_return=info["portfolio_return"],
+            )
         done = terminated or truncated
+        step += 1
+    if collector is not None:
+        collector.save()
     return cum, tos
 
 
@@ -228,20 +266,27 @@ def main():
     print(f"\nTest set: {df_all['Date'].min().date()} → {df_all['Date'].max().date()}"
           f"  |  {df_all['Ticker'].nunique()} tickers")
 
-    results = {}     # label → { cum:[], metrics:{} }
+    # ── Shared run_id for this benchmark session ──────────────────────────────
+    import datetime
+    run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    results = {}     # label -> { cum:[], metrics:{} }
 
     # 1. DRL models
     for label, path, filt in MODEL_CATALOGUE:
-        cum, tos = rollout_ppo(path, label, df_all, filt)
+        coll = MetricsCollector(strategy=label, run_id=run_id)
+        cum, tos = rollout_ppo(path, label, df_all, filt, collector=coll)
         if cum is not None:
             results[label] = {"cum": cum, "metrics": calculate_metrics(cum, tos)}
 
     # 2. Equal Weight (full universe)
-    cum_ew, tos_ew = rollout_equal_weight(df_all, "all")
+    ew_coll = MetricsCollector(strategy="Equal Weight (1/N)", run_id=run_id)
+    cum_ew, tos_ew = rollout_equal_weight(df_all, "all", collector=ew_coll)
     results["Equal Weight (1/N)"] = {"cum": cum_ew, "metrics": calculate_metrics(cum_ew, tos_ew)}
 
     # 3. MVO
-    cum_mvo, tos_mvo = rollout_mvo(df_all, "all")
+    mvo_coll = MetricsCollector(strategy="MVO (Max Sharpe)", run_id=run_id)
+    cum_mvo, tos_mvo = rollout_mvo(df_all, "all", collector=mvo_coll)
     results["MVO (Max Sharpe)"] = {"cum": cum_mvo, "metrics": calculate_metrics(cum_mvo, tos_mvo)}
 
     # ── Build metrics table ──────────────────────────────────────────────────
@@ -266,10 +311,13 @@ def main():
     metrics_df.to_csv(csv_path, index=False)
     print(f"\n  Metrics saved → {csv_path}")
 
-    # ── Plots ────────────────────────────────────────────────────────────────
-    print("\n  Generating plots …")
+    print("\n  Generating plots ...")
     plot_cumulative(results,   os.path.join(RESULTS_DIR, "benchmark_cumreturns.png"))
     plot_metrics_bar(metrics_df, os.path.join(RESULTS_DIR, "benchmark_metrics_bar.png"))
+
+    # ── Metric Aggregation plots ─────────────────────────────────────────────
+    print("\n  Running metric aggregation plots ...")
+    aggregate_and_plot()
 
     print("\n  Done! All outputs in:", RESULTS_DIR)
 
