@@ -1,16 +1,3 @@
-"""
-visualize_results.py
-====================
-Sprint 4: Publication-quality visual analysis.
-
-Generates three chart families in results/sprint4/:
-
-  1. equity_curves.png          - Multi-strategy equity curves with drawdown shading
-  2. weight_heatmap_pilot.png   - Portfolio weight allocation over time (PPO Pilot)
-  3. weight_heatmap_full.png    - Portfolio weight allocation over time (PPO Full)
-  4. cost_vs_return_scatter.png - Cumulative TC drag % vs Annualised Return % scatter
-"""
-
 import os
 import sys
 import re
