@@ -1,8 +1,8 @@
 Strategy,Ann. Return (%),Sharpe Ratio,Max Drawdown (%),Avg Turnover
-PPO Pilot (equities),13.81,0.731,-16.89,0.40165
-PPO Full (30k steps),-13.14,-0.768,-35.3,0.88322
-PPO Checkpoint 10k,-10.71,-0.687,-29.94,0.79093
-PPO Checkpoint 20k,-13.59,-0.776,-35.2,0.80781
-PPO Checkpoint 30k,-11.99,-0.698,-31.02,0.87579
+PPO Pilot (equities),14.84,0.728,-22.02,0.38796
+PPO Full (30k steps),-18.56,-1.197,-43.87,0.84456
+PPO Checkpoint 10k,-11.43,-0.763,-33.31,0.72749
+PPO Checkpoint 20k,-14.14,-0.975,-36.34,0.85898
+PPO Checkpoint 30k,-16.31,-1.121,-38.82,0.81175
 Equal Weight (1/N),8.7,0.555,-18.14,0.00803
 MVO (Max Sharpe),8.7,0.555,-18.14,0.00803

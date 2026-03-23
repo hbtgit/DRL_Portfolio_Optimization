@@ -242,12 +242,26 @@ def plot_cost_return_scatter(save_path: str) -> None:
                marker="D", label="Baselines")
 
     # Labels
-    for xi, yi, lbl in zip(x, y, labels):
-        short = lbl.replace("PPO ", "").replace("(equities)", "Pilot").replace(
-                "(30k steps)", "Full").replace("Checkpoint ", "Ckpt ")
-        ax.annotate(short, (xi, yi),
-                    textcoords="offset points", xytext=(6, 4),
-                    fontsize=8, color="#333333")
+    try:
+        from adjustText import adjust_text
+        texts = []
+        yrange = max(y) - min(y) if len(y) > 0 else 10
+        y_offset = yrange * 0.03
+        for xi, yi, lbl in zip(x, y, labels):
+            short = lbl.replace("PPO Pilot (equities)", "Pilot").replace(
+                    "PPO Full (30k steps)", "Full").replace("PPO Checkpoint ", "Ckpt ")
+            texts.append(ax.text(xi, yi + y_offset, short, fontsize=8, color="#333333",
+                                 ha="center", va="bottom"))
+        adjust_text(texts, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5), force_points=(0.2, 0.5))
+        # Add margins to prevent labels from being cut off at the edges
+        ax.margins(y=0.15, x=0.15)
+    except ImportError:
+        for xi, yi, lbl in zip(x, y, labels):
+            short = lbl.replace("PPO Pilot (equities)", "Pilot").replace(
+                    "PPO Full (30k steps)", "Full").replace("PPO Checkpoint ", "Ckpt ")
+            ax.annotate(short, (xi, yi),
+                        textcoords="offset points", xytext=(6, 4),
+                        fontsize=8, color="#333333")
 
     # Regression line
     if len(x) >= 3:
