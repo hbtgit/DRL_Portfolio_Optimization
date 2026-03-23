@@ -1,27 +1,3 @@
-"""
-metrics_aggregator.py
-=====================
-Automated collection and persistence of step-level turnover and
-transaction cost data produced during any rollout.
-
-Usage (inside a rollout loop)
-------------------------------
-    from metrics_aggregator import MetricsCollector, aggregate_and_plot
-
-    collector = MetricsCollector(strategy="PPO_Pilot", run_id="bench_001")
-    for step in episode:
-        ...env.step(action)...
-        collector.record(
-            step=step,
-            turnover=info["turnover"],
-            tc_penalty=info["tc_penalty"],
-            net_return=info["net_return"],
-            gross_return=info["portfolio_return"],
-        )
-    collector.save()          # writes per-strategy CSV + appends to summary
-    aggregate_and_plot()      # regenerates all diagnostic plots
-"""
-
 import os
 import sys
 import datetime

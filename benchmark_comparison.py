@@ -1,18 +1,3 @@
-"""
-benchmark_comparison.py
-========================
-Comprehensive performance benchmarking across:
-  - All trained DRL PPO models (pilot, full, checkpoints)
-  - Equal Weight baseline
-  - MVO (Max Sharpe) baseline
-
-Outputs
--------
-  results/benchmark_table.csv         - Metrics for every strategy
-  results/benchmark_cumreturns.png    - Cumulative return curves
-  results/benchmark_metrics_bar.png   - Side-by-side metric bar charts
-"""
-
 import os
 import sys
 import warnings
