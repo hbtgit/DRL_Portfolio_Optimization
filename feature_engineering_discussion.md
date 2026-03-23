@@ -1,6 +1,6 @@
 # Feature Engineering Discussion
 
-This document outlines the feature engineering process performed on the historical financial data for the 32 selected assets (27 equities and 5 cryptocurrencies).
+This document outlines the feature engineering process performed on the historical financial data for the 32 selected assets (30 equities and 2 cryptocurrencies).
 
 ## 1. Data Preprocessing
 - **Source Alignment**: Data was loaded from raw CSV files in `data/equities/` and `data/crypto/`.
@@ -33,9 +33,9 @@ The final processed dataset is saved in two formats:
 
 **Dataset Statistics:**
 - **Total Rows**: 73,451
-- **Asset Classes**: Equities (27) and Crypto (5)
+- **Asset Classes**: Equities (30) and Crypto (2)
 - **Time Range**: 2015-01-01 to ~2024 (Exact end date varies by download).
-- **Features per Row**: 11 normalized technical features + Date/Ticker metadata.
+- **Features per Row**: 10 normalized technical features + 5 raw OHLCV features + Date/Ticker/Asset_Type metadata.
 
 ## Next Steps
 The data is now ready for the DRL environment. We will proceed to implement the `TradingEnv` and start the agent training phase.
