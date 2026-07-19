@@ -1,0 +1,25 @@
+# Model artifacts — publish to GitHub Releases, never commit
+models/
+*.zip
+*.pkl
+*.pt
+*.onnx
+
+# Data — fetch via download_data.py / external storage
+data/
+!data/.gitkeep
+
+# Training logs & checkpoints
+logs/
+runs/
+*.tfevents.*
+
+# Python / Jupyter cruft
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Results (regenerated)
+results/

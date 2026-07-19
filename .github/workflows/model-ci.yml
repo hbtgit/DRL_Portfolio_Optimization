@@ -1,0 +1,132 @@
+name: Model CI (Pull Request)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "**.py"
+      - "requirements.txt"
+      - "ci/**"
+      - ".github/workflows/model-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+  MODEL_RELEASE_TAG: ${{ vars.MODEL_RELEASE_TAG }}
+  MIN_SHARPE: "0.50"
+  MAX_DRAWDOWN: "-0.35"
+  MAX_PREDICT_LATENCY_MS: "50"
+
+jobs:
+  lint-and-env:
+    name: Lint & Environment Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff
+
+      - name: Ruff lint
+        run: ruff check --output-format=github .
+
+      - name: Smoke test trading environment
+        run: |
+          python - <<'PY'
+          import numpy as np, pandas as pd
+          from trading_env import TradingEnv
+          dates = pd.date_range("2015-01-01", periods=60, freq="B")
+          rows = []
+          for t in ["AAPL", "MSFT", "GOOGL"]:
+              for d in dates:
+                  rows.append({"Date": d, "Ticker": t,
+                               "Close": 100 + np.random.randn(),
+                               "Return": np.random.randn() * 0.01})
+          df = pd.DataFrame(rows)
+          env = TradingEnv(df)
+          obs, info = env.reset()
+          action = env.action_space.sample()
+          obs, reward, terminated, truncated, info = env.step(action)
+          assert "net_return" in info, "env.step must expose net_return"
+          print("TradingEnv smoke test passed.")
+          PY
+
+  validation-gate:
+    name: Backtest & Latency Validation Gate
+    runs-on: ubuntu-latest
+    needs: lint-and-env
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download candidate model from GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p models
+          gh release download "${MODEL_RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --pattern "ppo_final.zip" \
+            --output models/ppo_final.zip
+          gh release download "${MODEL_RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --pattern "ppo_final.zip.sha256" \
+            --output models/ppo_final.zip.sha256
+
+      - name: Verify model checksum
+        run: |
+          cd models
+          sha256sum --check ppo_final.zip.sha256
+          echo "Model checksum verified."
+
+      - name: Fetch evaluation dataset
+        run: |
+          mkdir -p data/processed
+          python download_data.py
+
+      - name: Run backtest validation gate
+        run: |
+          python ci/validate_model.py \
+            --model models/ppo_final.zip \
+            --data data/processed/portfolio_data_normalized.csv \
+            --min-sharpe "${MIN_SHARPE}" \
+            --max-drawdown "${MAX_DRAWDOWN}" \
+            --max-latency-ms "${MAX_PREDICT_LATENCY_MS}" \
+            --report validation-report.json
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-report
+          path: validation-report.json
+          retention-days: 30
