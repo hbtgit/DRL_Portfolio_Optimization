@@ -1,0 +1,137 @@
+name: CD - Staging
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "inference/**"
+      - "Dockerfile"
+      - "requirements-inference.txt"
+      - ".aws/staging-taskdef.json"
+      - ".github/workflows/cd-staging.yml"
+  workflow_dispatch:
+    inputs:
+      model_release_tag:
+        description: "GitHub Release tag holding ppo_final.zip"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: cd-staging
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-west-1
+  ECR_REPOSITORY: drl-portfolio-inference
+  ECS_CLUSTER: drl-portfolio-staging
+  ECS_SERVICE: inference-staging
+  ECS_TASK_DEF: .aws/staging-taskdef.json
+  CONTAINER_NAME: inference
+  MODEL_RELEASE_TAG: ${{ github.event.inputs.model_release_tag || vars.MODEL_RELEASE_TAG }}
+  MAX_P95_LATENCY_MS: "120"
+
+jobs:
+  build-and-deploy:
+    name: Build, Deploy & Validate Staging
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.portfolio.internal
+    timeout-minutes: 45
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install client dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy requests
+
+      - name: Download model from GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p models
+          gh release download "${MODEL_RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --pattern "ppo_final.zip" \
+            --output models/ppo_final.zip
+          gh release download "${MODEL_RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --pattern "ppo_final.zip.sha256" \
+            --output models/ppo_final.zip.sha256
+
+      - name: Verify model checksum
+        run: |
+          cd models
+          sha256sum --check ppo_final.zip.sha256
+          echo "Model checksum verified."
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_STAGING_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push container image
+        id: build-image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE="${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          docker build -t "${IMAGE}" .
+          docker push "${IMAGE}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ steps.build-image.outputs.image }}
+          format: table
+          exit-code: "1"
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Render ECS task definition
+        id: render-task
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEF }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy to ECS staging
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-task.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Live integration + latency gate
+        env:
+          STAGING_ENDPOINT: https://staging.portfolio.internal
+          STAGING_INFERENCE_API_KEY: ${{ secrets.STAGING_INFERENCE_API_KEY }}
+        run: |
+          python inference/tests/integration_check.py \
+            --endpoint "${STAGING_ENDPOINT}" \
+            --api-key "${STAGING_INFERENCE_API_KEY}" \
+            --requests 50 \
+            --max-p95-latency-ms "${MAX_P95_LATENCY_MS}"
