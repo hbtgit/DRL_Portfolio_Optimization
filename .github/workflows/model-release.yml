@@ -1,0 +1,92 @@
+name: Model Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version tag, e.g. model-v1.2.0"
+        required: true
+        type: string
+      artifact_run_id:
+        description: "Actions run ID whose 'trained-model' artifact to publish"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release-model:
+    name: Validate & Publish Model Artifact
+    runs-on: ubuntu-latest
+    environment:
+      name: model-registry
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download trained model artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-model
+          run-id: ${{ github.event.inputs.artifact_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: models
+
+      - name: Fetch evaluation dataset
+        run: |
+          mkdir -p data/processed
+          python download_data.py
+
+      - name: Validate model before release
+        run: |
+          python ci/validate_model.py \
+            --model models/ppo_final.zip \
+            --data data/processed/portfolio_data_normalized.csv \
+            --min-sharpe 0.50 \
+            --max-drawdown -0.35 \
+            --max-latency-ms 50 \
+            --report validation-report.json
+
+      - name: Generate checksum
+        run: |
+          cd models
+          sha256sum ppo_final.zip > ppo_final.zip.sha256
+          cat ppo_final.zip.sha256
+
+      - name: Write release audit trail
+        run: |
+          cat > release-audit.json <<EOF
+          {
+            "version": "${{ github.event.inputs.version }}",
+            "released_by": "${{ github.actor }}",
+            "source_run_id": "${{ github.event.inputs.artifact_run_id }}",
+            "commit": "${{ github.sha }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+          cat release-audit.json
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: ${{ github.event.inputs.version }}
+          body_path: validation-report.json
+          files: |
+            models/ppo_final.zip
+            models/ppo_final.zip.sha256
+            release-audit.json
+          fail_on_unmatched_files: true
